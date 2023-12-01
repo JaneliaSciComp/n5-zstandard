@@ -25,8 +25,8 @@ A value of `0` usually indicates the default according to the [Zstandard manual]
 * dict - Dictionary for compression
 
 ## zstd-jni Parameters
-* [useChecksums](https://www.javadoc.io/static/com.github.luben/zstd-jni/1.5.5-10/com/github/luben/zstd/ZstdOutputStream.html#setChecksum(boolean)) - Enable checksums for the compressed stream.
-* [setCloseFrameOnFlush](https://www.javadoc.io/static/com.github.luben/zstd-jni/1.5.5-10/com/github/luben/zstd/ZstdOutputStream.html#setCloseFrameOnFlush(boolean)) - Enable closing the frame on flush.
+* [useChecksums](https://www.javadoc.io/static/com.github.luben/zstd-jni/1.5.5-10/com/github/luben/zstd/ZstdOutputStream.html) - Enable checksums for the compressed stream.
+* [setCloseFrameOnFlush](https://www.javadoc.io/static/com.github.luben/zstd-jni/1.5.5-10/com/github/luben/zstd/ZstdOutputStream.html) - Enable closing the frame on flush.
 
 ### zstd-jni documentation
 
