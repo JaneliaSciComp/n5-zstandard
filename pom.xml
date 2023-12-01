@@ -99,7 +99,7 @@
 		<dependency>
 		    <groupId>com.github.luben</groupId>
 		    <artifactId>zstd-jni</artifactId>
-    		<version>1.5.5-10</version>
+		    <version>1.5.5-10</version>
 		</dependency>
 		<!-- Test dependencies -->
 		<dependency>
