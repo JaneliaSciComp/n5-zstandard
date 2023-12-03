@@ -47,7 +47,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0 (do not spawn any workers)
 	 */
-	@CompressionParameter
 	private int nbWorkers = 0;
 	
 	/*
@@ -55,7 +54,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0	
 	 */
-	@CompressionParameter
 	private int windowLog = 0;
 	
 	/*
@@ -63,7 +61,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int hashLog = 0;
 
 	/*
@@ -71,7 +68,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int chainLog = 0;
 
 	/*
@@ -79,7 +75,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int searchLog = 0;
 
 	/*
@@ -87,7 +82,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int minMatch = 0;
 
 	/*
@@ -95,7 +89,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int targetLength = 0;
 	
 	/*
@@ -103,7 +96,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int strategy = 0;
 	
 	/*
@@ -111,7 +103,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int jobSize = 0;
 	
 	/*
@@ -119,7 +110,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: 0
 	 */
-	@CompressionParameter
 	private int overlapLog = 0;
 	
 	/*
@@ -127,7 +117,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: false
 	 */	
-	@CompressionParameter
 	private boolean useChecksums = false;
 	
 	/*
@@ -135,7 +124,6 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: false
 	 */
-	@CompressionParameter
 	private boolean setCloseFrameOnFlush = false;
 	
 	/*
@@ -143,13 +131,17 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * 
 	 * Default: null
 	 */
-	@CompressionParameter
 	private byte[] dict = null;
 	
 	/*
 	 * Configure how buffers are recycled
 	 */
 	private BufferPool bufferPool = NoPool.INSTANCE;
+	
+	/*
+	 * Default compression level from zstd.h
+	 */
+	public static final int ZSTD_CLEVEL_DEFAULT = 3;
 	
 	/*
 	 * Sets the following default parameters
@@ -163,26 +155,14 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	public ZstandardCompression() {
 		// C library uses compression level 3 as standard
 		// numcodecs uses compression level 1 as standard
-		this(3);
+		this(ZSTD_CLEVEL_DEFAULT);
 	}
 
-	public ZstandardCompression(int level) {
-		this(level, 0, 0);
-	}
-	
-	public ZstandardCompression(int level, int nbWorkers) {
-		this(level, nbWorkers, 0);
-	}
-	
 	/**
 	 * @param level -    Compression level (default: 3)
-	 * @param nbWorkers  Number of worker threads (default: 0)
-	 * @param windowLog  Maximum allowed back-reference distance, expressed as a power of 2
 	 */
-	public ZstandardCompression(int level, int nbWorkers, int windowLog) {
+	public ZstandardCompression(int level) {
 		this.level = level;
-		this.nbWorkers = nbWorkers;
-		this.windowLog = windowLog;
 	}
 	
 	public int getLevel() {
