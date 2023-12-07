@@ -25,7 +25,7 @@ import org.junit.function.ThrowingRunnable;
 import com.google.gson.GsonBuilder;
 
 /**
- * Lazy {@link ZstandardCompression} test using the abstract base class.
+ * Lazy {@link ZstandardCompressionAdvanced} test using the abstract base class.
  *
  * @author Mark Kittisopikul &lt;kittisopikulm@janelia.hhmi.org&gt;
  */
@@ -84,7 +84,7 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 
 	@Override
 	protected Compression[] getCompressions() {
-		Compression[] compressions = {new ZstandardCompression()};
+		Compression[] compressions = {new ZstandardCompression(), new ZstandardCompressionAdvanced()};
 		return compressions;
 	}
 
@@ -94,7 +94,7 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 		final String zstdDatasetName = datasetName + "-zstdworkerstest";
 		try (N5Writer n5 = createN5Writer()) {
 
-			ZstandardCompression compressor = new ZstandardCompression(3);
+			ZstandardCompressionAdvanced compressor = new ZstandardCompressionAdvanced(3);
 			n5.createDataset( zstdDatasetName, dimensions, blockSize, DataType.UINT64, compressor);
 
 			if (!n5.exists(zstdDatasetName))
@@ -105,13 +105,13 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 				Assert.assertArrayEquals(dimensions, info.getDimensions());
 				Assert.assertArrayEquals(blockSize, info.getBlockSize());
 				Assert.assertEquals(DataType.UINT64, info.getDataType());
-				Assert.assertEquals(ZstandardCompression.class, info.getCompression().getClass());
+				Assert.assertEquals(ZstandardCompressionAdvanced.class, info.getCompression().getClass());
 
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> map = n5.getAttribute(zstdDatasetName, "compression", Map.class);
 				//kittisopikulm: nbWorkers is not a compression parameter, so we cannot read it back
 				//Assert.assertEquals(10, ((Double) map.get("nbWorkers")).intValue());
-				Field nbWorkersField = ZstandardCompression.class.getDeclaredField("nbWorkers");
+				Field nbWorkersField = ZstandardCompressionAdvanced.class.getDeclaredField("nbWorkers");
 				nbWorkersField.setAccessible(true);
 				//Assert.assertEquals(10, nbWorkersField.get(info.getCompression()));
 
@@ -123,8 +123,8 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 				Assert.assertArrayEquals(dimensions, info2.getDimensions());
 				Assert.assertArrayEquals(blockSize, info2.getBlockSize());
 				Assert.assertEquals(DataType.UINT64, info2.getDataType());
-				Assert.assertEquals(ZstandardCompression.class, info2.getCompression().getClass());
-				nbWorkersField = ZstandardCompression.class.getDeclaredField("nbWorkers");
+				Assert.assertEquals(ZstandardCompressionAdvanced.class, info2.getCompression().getClass());
+				nbWorkersField = ZstandardCompressionAdvanced.class.getDeclaredField("nbWorkers");
 				nbWorkersField.setAccessible(true);
 				Assert.assertEquals(0, nbWorkersField.get(info2.getCompression()));
 

@@ -28,6 +28,12 @@ import org.janelia.saalfeldlab.n5.DefaultBlockWriter;
 public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWriter, Compression {
 
 	private static final long serialVersionUID = 8592416400988371189L;
+	
+
+	/**
+	 * Default compression level from zstd.h
+	 */
+	public static final int ZSTD_CLEVEL_DEFAULT = 3;
 
 	/**
 	 * Compression level
@@ -40,15 +46,10 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * Default: 3 (see ZSTD_CLEVEL_DEFAULT)
 	 */
 	@CompressionParameter
-	private int level = 3;
+	private int level = ZSTD_CLEVEL_DEFAULT;
 
 	/**
-	 * Default compression level from zstd.h
-	 */
-	public static final int ZSTD_CLEVEL_DEFAULT = 3;
-
-	/**
-	 * Create Zstandard compression with level equal to the constant ZSTD_CLEVEL_DEFAULT (value: {@value ZstdCompression#ZSTD_CLEVEL_DEFAULT})
+	 * Create Zstandard compression with level equal to the constant ZSTD_CLEVEL_DEFAULT (value: {@value ZstandardCompression#ZSTD_CLEVEL_DEFAULT})
 	 */
 	public ZstandardCompression() {
 		this.level = ZSTD_CLEVEL_DEFAULT;
