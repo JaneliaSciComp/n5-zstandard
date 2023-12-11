@@ -2,8 +2,10 @@ package org.janelia.scicomp.n5.zstandard;
 
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -135,5 +137,13 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 
 		}
 	}
-
+	
+	@Test
+	public void testManyOutputStreams() throws IOException {
+		OutputStream out = new ByteArrayOutputStream();
+		ZstandardCompression compressor = new ZstandardCompression();
+		for(int i=0; i < 100_000; ++i) {
+			compressor.getOutputStream(out);
+		}
+	}
 }
