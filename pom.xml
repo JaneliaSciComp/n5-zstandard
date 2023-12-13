@@ -85,6 +85,9 @@
 		<license.projectName>n5-zstandard</license.projectName>
 		<license.organizationName>ImgLib2 authors</license.organizationName>
 		<license.copyrightOwners>Mark Kittisopikul</license.copyrightOwners>
+
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 	</properties>
 
 	<dependencies>
