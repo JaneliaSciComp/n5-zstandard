@@ -81,10 +81,10 @@
 	<properties>
 		<package-name>org.janelia.scicomp.n5.zstandard</package-name>
 
-		<license.licenseName>bsd_2</license.licenseName>
+		<license.licenseName>bsd_3</license.licenseName>
 		<license.projectName>n5-zstandard</license.projectName>
-		<license.organizationName>ImgLib2 authors</license.organizationName>
-		<license.copyrightOwners>Mark Kittisopikul</license.copyrightOwners>
+		<license.organizationName>HHMI</license.organizationName>
+		<license.copyrightOwners>Howard Hughes Medical Institute</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
