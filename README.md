@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/JaneliaSciComp/n5-zstandard/actions/workflows/build.yml/badge.svg)](https://github.com/JaneliaSciComp/n5-zstandard/actions/workflows/build.yml)
+
 # n5-zstandard
 
 [Zstandard](https://facebook.github.io/zstd/) Compression for N5
