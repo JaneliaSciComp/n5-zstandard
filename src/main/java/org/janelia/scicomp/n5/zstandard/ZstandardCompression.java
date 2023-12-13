@@ -6,6 +6,7 @@ import java.io.OutputStream;
 
 import com.github.luben.zstd.BufferPool;
 import com.github.luben.zstd.NoPool;
+import com.github.luben.zstd.RecyclingBufferPool;
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
 import org.janelia.saalfeldlab.n5.BlockReader;
@@ -141,7 +142,11 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * Configure how buffers are recycled
 	 */
 	private BufferPool bufferPool = NoPool.INSTANCE;
-
+	
+	/*
+	 * 
+	 */
+	private boolean advancedParameterSet = false;
 	
 	/**
 	 * Create ZstandardCompression with level equal to the constant ZSTD_CLEVEL_DEFAULT (value: {@value ZstandardCompression#ZSTD_CLEVEL_DEFAULT})
@@ -197,6 +202,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setNbWorkers(int nbWorkers) {
 		this.nbWorkers = nbWorkers;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -215,6 +221,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setWindowLog(int windowLog) {
 		this.windowLog = windowLog;
+		this.advancedParameterSet = true;
 	}
 	
 	/**
@@ -233,6 +240,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setHashLog(int hashLog) {
 		this.hashLog = hashLog;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -251,6 +259,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setChainLog(int chainLog) {
 		this.chainLog = chainLog;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -269,6 +278,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setSearchLog(int searchLog) {
 		this.searchLog = searchLog;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -287,6 +297,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setMinMatch(int minMatch) {
 		this.minMatch = minMatch;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -305,6 +316,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setTargetLength(int targetLength) {
 		this.targetLength = targetLength;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -323,6 +335,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setStrategy(int strategy) {
 		this.strategy = strategy;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -341,6 +354,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setJobSize(int jobSize) {
 		this.jobSize = jobSize;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -359,6 +373,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setOverlapLog(int overlapLog) {
 		this.overlapLog = overlapLog;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -377,6 +392,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */	
 	public void setUseChecksums(boolean useChecksums) {
 		this.useChecksums = useChecksums;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -395,6 +411,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setSetCloseFrameOnFlush(boolean setCloseFrameOnFlush) {
 		this.setCloseFrameOnFlush = setCloseFrameOnFlush;
+		this.advancedParameterSet = true;
 	}
 
 	/**
@@ -413,6 +430,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public void setDict(byte[] dict) {
 		this.dict = dict;
+		this.advancedParameterSet = true;
 	}
 	
 	/**
@@ -420,6 +438,16 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 */
 	public BufferPool getBufferPool() {
 		return bufferPool;
+	}
+	
+	/**
+	 * Configure how buffers are recycled
+	 */
+	public void useRecyclingBufferPool(boolean useRecycling) {
+		if (useRecycling)
+			bufferPool = RecyclingBufferPool.INSTANCE;
+		else
+			bufferPool = NoPool.INSTANCE;
 	}
 
 	/**
@@ -444,27 +472,43 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	public OutputStream getOutputStream(OutputStream out) throws IOException {
 		ZstdOutputStream zstdOut = new ZstdOutputStream(out, bufferPool);
 		// standard parameters
-		zstdOut.setLevel(level);
-		zstdOut.setWorkers(nbWorkers);
-		zstdOut.setLong(windowLog);
+		if (level != 0)
+			zstdOut.setLevel(level);
 		
-		// advanced parameters
-		zstdOut.setHashLog(hashLog);
-		zstdOut.setChainLog(chainLog);
-		zstdOut.setSearchLog(searchLog);
-		zstdOut.setMinMatch(minMatch);
-		zstdOut.setTargetLength(targetLength);
-		zstdOut.setStrategy(strategy);
-		zstdOut.setJobSize(jobSize);
-		zstdOut.setOverlapLog(overlapLog);
-		
-		// zstd-jni parameters
-		zstdOut.setChecksum(useChecksums);
-		zstdOut.setCloseFrameOnFlush(setCloseFrameOnFlush);
-		
-		// dictionary
-		if (dict != null) {
-			zstdOut.setDict(dict);
+		if (advancedParameterSet) {
+			if (nbWorkers != 0)
+				zstdOut.setWorkers(nbWorkers);
+			if (windowLog != 0)
+				zstdOut.setLong(windowLog);
+			
+			// advanced parameters
+			if (hashLog != 0)
+				zstdOut.setHashLog(hashLog);
+			if (chainLog != 0)
+				zstdOut.setChainLog(chainLog);
+			if (searchLog != 0)
+				zstdOut.setSearchLog(searchLog);
+			if (minMatch != 0)
+				zstdOut.setMinMatch(minMatch);
+			if (targetLength != 0)
+				zstdOut.setTargetLength(targetLength);
+			if (strategy != 0)
+				zstdOut.setStrategy(strategy);
+			if (jobSize != 0)
+				zstdOut.setJobSize(jobSize);
+			if (overlapLog != 0)
+				zstdOut.setOverlapLog(overlapLog);
+			
+			// zstd-jni parameters
+			if (!useChecksums)
+				zstdOut.setChecksum(useChecksums);
+			
+			if (!setCloseFrameOnFlush)
+				zstdOut.setCloseFrameOnFlush(setCloseFrameOnFlush);
+			
+			// dictionary
+			if (dict != null)
+				zstdOut.setDict(dict);
 		}
 		
 		return zstdOut;
