@@ -3,6 +3,7 @@ package org.janelia.scicomp.n5.zstandard;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -10,7 +11,10 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Random;
 
 import org.janelia.saalfeldlab.n5.AbstractN5Test;
 import org.janelia.saalfeldlab.n5.Compression;
@@ -22,8 +26,11 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.function.ThrowingRunnable;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+import com.github.luben.zstd.Zstd;
 import com.google.gson.GsonBuilder;
 
 /**
@@ -31,7 +38,40 @@ import com.google.gson.GsonBuilder;
  *
  * @author Mark Kittisopikul &lt;kittisopikulm@janelia.hhmi.org&gt;
  */
+@RunWith(Parameterized.class)
 public class ZstandardCompressionTest extends AbstractN5Test {
+	
+    @Parameters
+    public static Collection<Object[]> data() {
+    	int m = Zstd.minCompressionLevel();
+    	int M = Zstd.maxCompressionLevel();
+    	System.out.println("Minimum compression level: " + m);
+    	System.out.println("Maximum compression level: " + M);
+    	//Comments below are with 16 MiB of int16 255 +/- 32;
+		return Arrays.asList(new Object[][] {
+			{ m,0}, { m,2}, { m,4}, { m,8}, // test  0 -  3, 100%,  3.5s, 1 thread
+			{-2,0}, {-2,2}, {-2,4}, {-2,8}, // test  4 -  7,  97%,  4.5s, 1 thread
+			{-1,0}, {-1,2}, {-1,4}, {-1,8}, // test  8 - 11,  96%,  5.0s, 8 threads
+			//Compression level 0 means default (3)
+			{ 1,0}, { 1,2}, { 1,4}, { 1,8}, // test 12 - 15,  55%,  5.5s, 8 threads
+			{ 2,0}, { 2,2}, { 2,4}, { 2,8}, // test 16 - 19,  53%,  8.1s, 4 threads
+			{ 3,0}, { 3,2}, { 3,4}, { 3,8}, // test 20 - 23,  51%, 14.0s, 4 threads
+			{ 6,0}, { 6,2}, { 6,4}, { 6,8}, // test 24 - 27,  49%, 25.5s, 2 threads
+			//{12,0}, {12,1}, {12,2}, {12,4}, // test 28 - 31
+			//{15,0}, {15,1}, {15,2}, {15,4}, // test 32 - 35
+			//{ M,8}, { M,1}, { M,2}, { M,4}  // test 36 - 39
+		});
+    }
+    
+    private int level = 0;
+    private int nbWorkers = 0;
+    private int megabytesToCompress = 16;
+    
+    public ZstandardCompressionTest(int level, int nbWorkers) {
+    	this.level = level;
+    	this.nbWorkers = nbWorkers;
+    }
+
 
 	private static String testDirPath = createTestDirPath("n5-test");
 
@@ -140,10 +180,27 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 	
 	@Test
 	public void testManyOutputStreams() throws IOException {
-		OutputStream out = new ByteArrayOutputStream();
-		ZstandardCompression compressor = new ZstandardCompression();
-		for(int i=0; i < 100_000; ++i) {
-			compressor.getOutputStream(out);
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream(1024*1024*2*megabytesToCompress/2);
+		DataOutputStream data = new DataOutputStream(bytes);
+		Random rand = new Random(1230);
+		//rand.nextBytes(data);
+		for(int i=0; i< 1024*1024*megabytesToCompress/2; ++i) {
+			data.writeShort((short) (rand.nextGaussian() * Short.MAX_VALUE/2048.0 + 255));
 		}
+		byte[] byteArray = bytes.toByteArray();
+		
+		ByteArrayOutputStream out = new ByteArrayOutputStream();;
+		OutputStream zstdOut;
+		ZstandardCompression compressor = new ZstandardCompression(this.level);
+		compressor.setNbWorkers(this.nbWorkers);
+		for(int i=0; i < 100; ++i) {
+			out.reset();
+			zstdOut = compressor.getOutputStream(out);
+			zstdOut.write(byteArray);
+			zstdOut.close();
+		}
+		System.out.println("Compression level: " + this.level + ", Threads: " + this.nbWorkers +
+				", Ratio: " + out.size() + " / " + byteArray.length + 
+				" (" + (float) out.size()/byteArray.length*100 + "%)");
 	}
 }
