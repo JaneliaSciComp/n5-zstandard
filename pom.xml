@@ -8,7 +8,7 @@
 	</parent>
     <groupId>org.janelia</groupId>
     <artifactId>n5-zstandard</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <name>N5 Zstandard</name>
 	<description>Zstandard compression for N5</description>
 	<url>https://github.com/JaneliaSciComp/n5-zstandard</url>
@@ -66,7 +66,7 @@
 	<scm>
 		<connection>scm:git:https://github.com/JaneliaSciComp/n5-zstandard</connection>
 		<developerConnection>scm:git:git@github.com:JaneliaSciComp/n5-zstandard</developerConnection>
-		<tag>HEAD</tag>
+		<tag>n5-zstandard-1.0.2</tag>
 		<url>https://github.com/JaneliaSciComp/n5-zstandard</url>
 	</scm>
 	<issueManagement>
