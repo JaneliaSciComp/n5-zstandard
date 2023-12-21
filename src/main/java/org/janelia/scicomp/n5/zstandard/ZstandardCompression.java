@@ -35,15 +35,18 @@ package org.janelia.scicomp.n5.zstandard;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 import com.github.luben.zstd.BufferPool;
 import com.github.luben.zstd.NoPool;
 import com.github.luben.zstd.RecyclingBufferPool;
+import com.github.luben.zstd.ZstdCompressCtx;
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
 import org.janelia.saalfeldlab.n5.BlockReader;
 import org.janelia.saalfeldlab.n5.BlockWriter;
 import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.Compression.CompressionType;
 import org.janelia.saalfeldlab.n5.DefaultBlockReader;
 import org.janelia.saalfeldlab.n5.DefaultBlockWriter;
@@ -532,10 +535,9 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 				zstdOut.setOverlapLog(overlapLog);
 			
 			// zstd-jni parameters
-			if (!useChecksums)
+			if (useChecksums)
 				zstdOut.setChecksum(useChecksums);
-			
-			if (!setCloseFrameOnFlush)
+			if (setCloseFrameOnFlush)
 				zstdOut.setCloseFrameOnFlush(setCloseFrameOnFlush);
 			
 			// dictionary
@@ -558,6 +560,71 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 		}
 		
 		return zstdIn;
+	}
+
+	/*
+	 * We override write in order to use zstd's buffer API. In doing so, we
+	 * include the size of the dataBlock in the frame header. This allows
+	 * decompression software to determine the output buffer length via
+	 * ZSTD_getFrameContentSize.
+	 *
+	 * As of December 2023, zarr-developers/numcodecs contained a bug where the
+	 * deprecated function ZSTD_getDecompressedSize was incorrectly interpreted
+	 * as returning an error when it was indicating an unknown size value.
+	 * https://github.com/zarr-developers/numcodecs/issues/499
+	 * This addresses the issue by including the size in the frame header.
+	 *
+	 * An alternate approach would be to use ZSTD_CCtx_setPledgedSrcSize with
+	 * the streaming API.
+	 */
+	@Override
+	public <T> void write(
+			final DataBlock<T> dataBlock,
+			final OutputStream out) throws IOException {
+
+		final ByteBuffer buffer = dataBlock.toByteBuffer();
+		byte[] outputBuffer;
+
+		//consider reusing this context
+		ZstdCompressCtx ctx = new ZstdCompressCtx();
+		try {
+			ctx.setLevel(level);
+
+			if(advancedParameterSet) {
+				if (chainLog != 0)
+					ctx.setChainLog(chainLog);
+				if (useChecksums)
+					ctx.setChecksum(useChecksums);
+				if (hashLog != 0)
+					ctx.setHashLog(hashLog);
+				if (jobSize != 0)
+					ctx.setJobSize(jobSize);
+				if (windowLog != 0)
+					ctx.setLong(windowLog);
+				if (minMatch != 0)
+					ctx.setMinMatch(minMatch);
+				if (overlapLog != 0)
+					ctx.setOverlapLog(overlapLog);
+				if (searchLog != 0)
+					ctx.setSearchLog(searchLog);
+				if (strategy != 0)
+					ctx.setStrategy(strategy);
+				if (targetLength != 0)
+					ctx.setTargetLength(targetLength);
+				if (windowLog != 0)
+					ctx.setWindowLog(windowLog);
+				if (nbWorkers != 0)
+					ctx.setWorkers(nbWorkers);
+			}
+
+			//compress does accept a ByteBuffer but it must be direct
+			outputBuffer = ctx.compress(buffer.array());
+
+			out.write(outputBuffer);
+			out.flush();
+		} finally {
+			ctx.close();
+		}
 	}
 
 }
