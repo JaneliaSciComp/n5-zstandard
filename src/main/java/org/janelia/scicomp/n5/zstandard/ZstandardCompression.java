@@ -50,6 +50,8 @@ import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.Compression.CompressionType;
 import org.janelia.saalfeldlab.n5.DefaultBlockReader;
 import org.janelia.saalfeldlab.n5.DefaultBlockWriter;
+import org.janelia.saalfeldlab.n5.codec.Codec;
+import org.janelia.saalfeldlab.n5.serialization.NameConfig;
 
 /**
  * Zstandard compression for N5
@@ -63,7 +65,8 @@ import org.janelia.saalfeldlab.n5.DefaultBlockWriter;
  *
  */
 @CompressionType("zstd")
-public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWriter, Compression {
+@NameConfig.Name("zstd")
+public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWriter, Compression, Codec {
 	private static final long serialVersionUID = 5811954066059985371L;
 	
 	/*
@@ -80,6 +83,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * Default: 3
 	 */
 	@CompressionParameter
+	@NameConfig.Parameter
 	private int level = ZSTD_CLEVEL_DEFAULT;
 	
 	/*
@@ -501,6 +505,18 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	@Override
 	public BlockWriter getWriter() {
 		return this;
+	}
+
+	@Override
+	public OutputStream encode(final OutputStream out) throws IOException {
+
+		return getOutputStream(out);
+	}
+
+	@Override
+	public InputStream decode(InputStream in) throws IOException {
+
+		return getInputStream(in);
 	}
 
 	@Override
