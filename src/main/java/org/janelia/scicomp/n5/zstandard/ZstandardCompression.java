@@ -65,7 +65,7 @@ import org.janelia.saalfeldlab.n5.serialization.NameConfig;
  *
  */
 @CompressionType("zstd")
-@NameConfig.Name("zstd")
+@NameConfig.Name("zstandard")
 public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWriter, Compression, Codec {
 	private static final long serialVersionUID = 5811954066059985371L;
 	
