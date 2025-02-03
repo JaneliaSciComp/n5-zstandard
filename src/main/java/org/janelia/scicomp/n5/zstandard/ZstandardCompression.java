@@ -6,18 +6,18 @@
  * %%
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * 3. Neither the name of the HHMI nor the names of its contributors
  *    may be used to endorse or promote products derived from this software without
  *    specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -32,157 +32,156 @@
  */
 package org.janelia.scicomp.n5.zstandard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-
 import com.github.luben.zstd.BufferPool;
 import com.github.luben.zstd.NoPool;
 import com.github.luben.zstd.RecyclingBufferPool;
 import com.github.luben.zstd.ZstdCompressCtx;
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
-import org.janelia.saalfeldlab.n5.BlockReader;
-import org.janelia.saalfeldlab.n5.BlockWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
+import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
 import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.Compression.CompressionType;
-import org.janelia.saalfeldlab.n5.DefaultBlockReader;
-import org.janelia.saalfeldlab.n5.DefaultBlockWriter;
+import org.janelia.saalfeldlab.n5.DataBlock;
+import org.janelia.saalfeldlab.n5.readdata.OutputStreamEncoder;
+import org.janelia.saalfeldlab.n5.readdata.ReadData;
 
 /**
  * Zstandard compression for N5
- * 
+ *
  * Implementation wrapper around <a href="https://github.com/luben/zstd-jni">zstd-jni</a>.
- * 
+ *
  * See the <a href="https://facebook.github.io/zstd/zstd_manual.html">Zstandard manual</a> for details on parameters.
- * 
- * 
+ *
+ *
  * @author mkitti
  *
  */
 @CompressionType("zstd")
-public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWriter, Compression {
+public class ZstandardCompression implements Compression {
 	private static final long serialVersionUID = 5811954066059985371L;
-	
+
 	/*
 	 * Default compression level from zstd.h
 	 */
 	public static final int ZSTD_CLEVEL_DEFAULT = 3;
-	
+
 	/*
 	 * Compression level
-	 * 
+	 *
 	 * Standard compression level is between 1 and 22
 	 * Negative compression levels offer speed
-	 * 
+	 *
 	 * Default: 3
 	 */
 	@CompressionParameter
 	private int level = ZSTD_CLEVEL_DEFAULT;
-	
+
 	/*
 	 * Number of Worker Threads to spawn
-	 * 
+	 *
 	 * Default: 0 (do not spawn any workers)
 	 */
 	private int nbWorkers = 0;
-	
+
 	/*
 	 * Maximum allowed back-reference distance, expressed as a power of 2
-	 * 
-	 * Default: 0	
+	 *
+	 * Default: 0
 	 */
 	private int windowLog = 0;
-	
+
 	/*
 	 * Size of the initial probe table, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int hashLog = 0;
 
 	/*
 	 * Size of the multi-probe search table, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int chainLog = 0;
 
 	/*
 	 * Number of search attempts, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int searchLog = 0;
 
 	/*
 	 * Minimum size of searched matches
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int minMatch = 0;
 
 	/*
 	 * Impact of this field depends on strategy
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int targetLength = 0;
-	
+
 	/*
 	 * See ZSTD_strategy enum definition
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int strategy = 0;
-	
+
 	/*
 	 * Size of a compression job. This value is enforced only when nbWorkers >= 1
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int jobSize = 0;
-	
+
 	/*
 	 * Control the overlap size, as a fraction of window size
-	 * 
+	 *
 	 * Default: 0
 	 */
 	private int overlapLog = 0;
-	
+
 	/*
 	 *  Enable checksums for the compressed stream
-	 * 
+	 *
 	 * Default: false
-	 */	
+	 */
 	private boolean useChecksums = false;
-	
+
 	/*
 	 * Enable closing the frame on flush.
-	 * 
+	 *
 	 * Default: false
 	 */
 	private boolean setCloseFrameOnFlush = false;
-	
+
 	/*
 	 * Dictionary for compression as a byte array
-	 * 
+	 *
 	 * Default: null
 	 */
 	private byte[] dict = null;
-	
+
 	/*
 	 * Configure how buffers are recycled
 	 */
 	private BufferPool bufferPool = NoPool.INSTANCE;
-	
+
 	/*
-	 * 
+	 *
 	 */
 	private boolean advancedParameterSet = false;
-	
+
 	/**
 	 * Create ZstandardCompression with level equal to the constant ZSTD_CLEVEL_DEFAULT (value: {@value ZstandardCompression#ZSTD_CLEVEL_DEFAULT})
 	 *
@@ -197,14 +196,14 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Create ZstandardCompression with the specified compression level.
-	 * 
+	 *
 	 * @param level The standard compression levels are normally between 1 to 22. Negative compression levels offer greater speed.
 	 *              The default value is  {@value ZstandardCompression#ZSTD_CLEVEL_DEFAULT}.
 	 */
 	public ZstandardCompression(int level) {
 		this.level = level;
 	}
-	
+
 	/*
 	 * Get the compression level
 	 */
@@ -214,7 +213,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the compression level
-	 * 
+	 *
 	 * The standard compression levels are normally between 1 to 22. Negative compression levels offer greater speed.
 	 */
 	public void setLevel(int level) {
@@ -223,16 +222,16 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the Number of Worker Threads to spawn
-	 * 
+	 *
 	 * Default: 0 (do not spawn any workers)
 	 */
 	public int getNbWorkers() {
 		return nbWorkers;
 	}
-	
+
 	/**
 	 * Set the Number of Worker Threads to spawn
-	 * 
+	 *
 	 * Default: 0 (do not spawn any workers)
 	 */
 	public void setNbWorkers(int nbWorkers) {
@@ -242,8 +241,8 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the maximum allowed back-reference distance, expressed as a power of 2
-	 * 
-	 * Default: 0	
+	 *
+	 * Default: 0
 	 */
 	public int getWindowLog() {
 		return windowLog;
@@ -251,17 +250,17 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the maximum allowed back-reference distance, expressed as a power of 2
-	 * 
-	 * Default: 0	
+	 *
+	 * Default: 0
 	 */
 	public void setWindowLog(int windowLog) {
 		this.windowLog = windowLog;
 		this.advancedParameterSet = true;
 	}
-	
+
 	/**
 	 * Set the size of the initial probe table, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getHashLog() {
@@ -270,7 +269,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the size of the initial probe table, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setHashLog(int hashLog) {
@@ -280,7 +279,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the size of the multi-probe search table, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getChainLog() {
@@ -289,7 +288,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the size of the multi-probe search table, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setChainLog(int chainLog) {
@@ -299,7 +298,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the number of search attempts, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getSearchLog() {
@@ -308,7 +307,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the number of search attempts, as a power of 2
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setSearchLog(int searchLog) {
@@ -318,7 +317,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the minimum size of searched matches
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getMinMatch() {
@@ -327,7 +326,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the minimum size of searched matches
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setMinMatch(int minMatch) {
@@ -337,7 +336,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Impact of this field depends on strategy
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getTargetLength() {
@@ -346,7 +345,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Impact of setting this field depends on strategy
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setTargetLength(int targetLength) {
@@ -356,7 +355,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * See ZSTD_strategy enum definition
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getStrategy() {
@@ -365,7 +364,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * See ZSTD_strategy enum definition
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setStrategy(int strategy) {
@@ -375,7 +374,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the size of a compression job. This value is enforced only when {@code nbWorkers >= 1}
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getJobSize() {
@@ -384,7 +383,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the size of a compression job. This value is enforced only when {@code nbWorkers >= 1}
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setJobSize(int jobSize) {
@@ -394,7 +393,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the overlap size, as a fraction of window size
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public int getOverlapLog() {
@@ -403,7 +402,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the overlap size, as a fraction of window size
-	 * 
+	 *
 	 * Default: 0
 	 */
 	public void setOverlapLog(int overlapLog) {
@@ -413,18 +412,18 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 *  Check if checksums are used for the compressed stream
-	 * 
+	 *
 	 * Default: false
-	 */	
+	 */
 	public boolean isUseChecksums() {
 		return useChecksums;
 	}
 
 	/**
 	 *  Enable or disable checksums for the compressed stream
-	 * 
+	 *
 	 * Default: false (disabled)
-	 */	
+	 */
 	public void setUseChecksums(boolean useChecksums) {
 		this.useChecksums = useChecksums;
 		this.advancedParameterSet = true;
@@ -432,7 +431,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Check if closing the frame on flush is enabled..
-	 * 
+	 *
 	 * Default: false
 	 */
 	public boolean isSetCloseFrameOnFlush() {
@@ -441,7 +440,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Enable or disable closing the frame on flush.
-	 * 
+	 *
 	 * Default: false
 	 */
 	public void setSetCloseFrameOnFlush(boolean setCloseFrameOnFlush) {
@@ -451,7 +450,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Get the dictionary for compression as a byte array
-	 * 
+	 *
 	 * Default: null (no dictionary)
 	 */
 	public byte[] getDict() {
@@ -460,21 +459,21 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 
 	/**
 	 * Set the dictionary for compression as a byte array
-	 * 
+	 *
 	 * Default: null (no dictionary)
 	 */
 	public void setDict(byte[] dict) {
 		this.dict = dict;
 		this.advancedParameterSet = true;
 	}
-	
+
 	/**
 	 * Get how buffers are recycled
 	 */
 	public BufferPool getBufferPool() {
 		return bufferPool;
 	}
-	
+
 	/**
 	 * Configure how buffers are recycled
 	 */
@@ -492,30 +491,18 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 		this.bufferPool = bufferPool;
 	}
 
-
-	@Override
-	public BlockReader getReader() {
-		return this;
-	}
-
-	@Override
-	public BlockWriter getWriter() {
-		return this;
-	}
-
-	@Override
-	public OutputStream getOutputStream(OutputStream out) throws IOException {
+	OutputStream getOutputStream(OutputStream out) throws IOException {
 		ZstdOutputStream zstdOut = new ZstdOutputStream(out, bufferPool);
 		// standard parameters
 		if (level != 0)
 			zstdOut.setLevel(level);
-		
+
 		if (advancedParameterSet) {
 			if (nbWorkers != 0)
 				zstdOut.setWorkers(nbWorkers);
 			if (windowLog != 0)
 				zstdOut.setLong(windowLog);
-			
+
 			// advanced parameters
 			if (hashLog != 0)
 				zstdOut.setHashLog(hashLog);
@@ -533,37 +520,42 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 				zstdOut.setJobSize(jobSize);
 			if (overlapLog != 0)
 				zstdOut.setOverlapLog(overlapLog);
-			
+
 			// zstd-jni parameters
 			if (useChecksums)
 				zstdOut.setChecksum(useChecksums);
 			if (setCloseFrameOnFlush)
 				zstdOut.setCloseFrameOnFlush(setCloseFrameOnFlush);
-			
+
 			// dictionary
 			if (dict != null)
 				zstdOut.setDict(dict);
 		}
-		
+
 		return zstdOut;
 	}
 
-	@Override
-	public InputStream getInputStream(InputStream in) throws IOException {
+	private InputStream getInputStream(InputStream in) throws IOException {
 		ZstdInputStream zstdIn =  new ZstdInputStream(in, bufferPool);
-		
+
 		//is windowLog the same as windowLogMax?
 		zstdIn.setLongMax(windowLog);
-		
+
 		if (dict != null) {
 			zstdIn.setDict(dict);
 		}
-		
+
 		return zstdIn;
 	}
 
+	@Override
+	public ReadData decode(final ReadData readData, final int decodedLength) throws IOException {
+		final InputStream inflater = getInputStream(readData.inputStream());
+		return ReadData.from(inflater, decodedLength).order(readData.order());
+	}
+
 	/*
-	 * We override write in order to use zstd's buffer API. In doing so, we
+	 * We override encode in order to use zstd's buffer API. In doing so, we
 	 * include the size of the dataBlock in the frame header. This allows
 	 * decompression software to determine the output buffer length via
 	 * ZSTD_getFrameContentSize.
@@ -578,12 +570,7 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 	 * the streaming API.
 	 */
 	@Override
-	public <T> void write(
-			final DataBlock<T> dataBlock,
-			final OutputStream out) throws IOException {
-
-		final ByteBuffer buffer = dataBlock.toByteBuffer();
-		byte[] outputBuffer;
+	public ReadData encode(final ReadData readData) throws IOException {
 
 		//consider reusing this context
 		ZstdCompressCtx ctx = new ZstdCompressCtx();
@@ -618,10 +605,9 @@ public class ZstandardCompression implements DefaultBlockReader, DefaultBlockWri
 			}
 
 			//compress does accept a ByteBuffer but it must be direct
-			outputBuffer = ctx.compress(buffer.array());
+			final byte[] outputBuffer = ctx.compress(readData.allBytes());
+			return ReadData.from(outputBuffer).order(readData.order());
 
-			out.write(outputBuffer);
-			out.flush();
 		} finally {
 			ctx.close();
 		}
