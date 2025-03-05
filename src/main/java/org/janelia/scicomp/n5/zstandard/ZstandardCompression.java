@@ -41,13 +41,8 @@ import com.github.luben.zstd.ZstdOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
-import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.Compression.CompressionType;
-import org.janelia.saalfeldlab.n5.DataBlock;
-import org.janelia.saalfeldlab.n5.readdata.OutputStreamEncoder;
 import org.janelia.saalfeldlab.n5.readdata.ReadData;
 
 /**
@@ -551,7 +546,7 @@ public class ZstandardCompression implements Compression {
 	@Override
 	public ReadData decode(final ReadData readData, final int decodedLength) throws IOException {
 		final InputStream inflater = getInputStream(readData.inputStream());
-		return ReadData.from(inflater, decodedLength).order(readData.order());
+		return ReadData.from(inflater, decodedLength);
 	}
 
 	/*
@@ -606,7 +601,7 @@ public class ZstandardCompression implements Compression {
 
 			//compress does accept a ByteBuffer but it must be direct
 			final byte[] outputBuffer = ctx.compress(readData.allBytes());
-			return ReadData.from(outputBuffer).order(readData.order());
+			return ReadData.from(outputBuffer);
 
 		} finally {
 			ctx.close();
