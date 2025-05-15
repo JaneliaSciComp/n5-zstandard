@@ -544,9 +544,9 @@ public class ZstandardCompression implements Compression {
 	}
 
 	@Override
-	public ReadData decode(final ReadData readData, final int decodedLength) throws IOException {
+	public ReadData decode(final ReadData readData) throws IOException {
 		final InputStream inflater = getInputStream(readData.inputStream());
-		return ReadData.from(inflater, decodedLength);
+		return ReadData.from(inflater);
 	}
 
 	/*
