@@ -89,7 +89,7 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<n5.version>3.3.2-SNAPSHOT</n5.version>
+		<n5.version>4.0.0-alpha-1</n5.version>
 	</properties>
 
 	<dependencies>
