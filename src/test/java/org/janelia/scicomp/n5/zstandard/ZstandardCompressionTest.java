@@ -58,7 +58,7 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.codec.Codec.BytesCodec;
+import org.janelia.saalfeldlab.n5.codec.BytesCodec;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
