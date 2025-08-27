@@ -58,8 +58,7 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.codec.BytesCodec;
-import org.junit.Assert;
+import org.janelia.saalfeldlab.n5.codec.DataCodecInfo;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -183,9 +182,9 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 				assertArrayEquals(blockSize, info.getBlockSize());
 				assertEquals(DataType.UINT64, info.getDataType());
 
-				final BytesCodec[] codecs = info.getCodecs();
-				assertEquals(1, codecs.length);
-				assertEquals(ZstandardCompression.class, codecs[0].getClass());
+				final DataCodecInfo[] dataCodecs = info.getDataCodecInfos();
+				assertEquals(1, dataCodecs.length);
+				assertEquals(ZstandardCompression.class, dataCodecs[0].getClass());
 
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> map = n5.getAttribute(zstdDatasetName, "compression", Map.class);
@@ -204,9 +203,9 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 				assertArrayEquals(blockSize, info2.getBlockSize());
 				assertEquals(DataType.UINT64, info2.getDataType());
 
-				final BytesCodec[] codecs2 = info2.getCodecs();
-				assertEquals(1, codecs2.length);
-				assertEquals(ZstandardCompression.class, codecs2[0].getClass());
+				final DataCodecInfo[] dataCodecs2 = info.getDataCodecInfos();
+				assertEquals(1, dataCodecs2.length);
+				assertEquals(ZstandardCompression.class, dataCodecs2[0].getClass());
 
 				nbWorkersField = ZstandardCompression.class.getDeclaredField("nbWorkers");
 				nbWorkersField.setAccessible(true);
