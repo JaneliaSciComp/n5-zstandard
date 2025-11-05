@@ -32,6 +32,8 @@
  */
 package org.janelia.scicomp.n5.zstandard;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
@@ -56,7 +58,7 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.junit.Assert;
+import org.janelia.saalfeldlab.n5.codec.DataCodecInfo;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -176,10 +178,13 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 
 			try {
 				final DatasetAttributes info = n5.getDatasetAttributes(zstdDatasetName);
-				Assert.assertArrayEquals(dimensions, info.getDimensions());
-				Assert.assertArrayEquals(blockSize, info.getBlockSize());
-				Assert.assertEquals(DataType.UINT64, info.getDataType());
-				Assert.assertEquals(ZstandardCompression.class, info.getCompression().getClass());
+				assertArrayEquals(dimensions, info.getDimensions());
+				assertArrayEquals(blockSize, info.getBlockSize());
+				assertEquals(DataType.UINT64, info.getDataType());
+
+				final DataCodecInfo[] dataCodecs = info.getDataCodecInfos();
+				assertEquals(1, dataCodecs.length);
+				assertEquals(ZstandardCompression.class, dataCodecs[0].getClass());
 
 				@SuppressWarnings("unchecked")
 				final Map<String, Object> map = n5.getAttribute(zstdDatasetName, "compression", Map.class);
@@ -194,13 +199,17 @@ public class ZstandardCompressionTest extends AbstractN5Test {
 				n5.setAttribute(zstdDatasetName, "compression", map);
 
 				final DatasetAttributes info2 = n5.getDatasetAttributes(zstdDatasetName);
-				Assert.assertArrayEquals(dimensions, info2.getDimensions());
-				Assert.assertArrayEquals(blockSize, info2.getBlockSize());
-				Assert.assertEquals(DataType.UINT64, info2.getDataType());
-				Assert.assertEquals(ZstandardCompression.class, info2.getCompression().getClass());
+				assertArrayEquals(dimensions, info2.getDimensions());
+				assertArrayEquals(blockSize, info2.getBlockSize());
+				assertEquals(DataType.UINT64, info2.getDataType());
+
+				final DataCodecInfo[] dataCodecs2 = info.getDataCodecInfos();
+				assertEquals(1, dataCodecs2.length);
+				assertEquals(ZstandardCompression.class, dataCodecs2[0].getClass());
+
 				nbWorkersField = ZstandardCompression.class.getDeclaredField("nbWorkers");
 				nbWorkersField.setAccessible(true);
-				Assert.assertEquals(0, nbWorkersField.get(info2.getCompression()));
+				assertEquals(0, nbWorkersField.get(info2.getCompression()));
 
 			} catch (final IllegalAccessException | IllegalArgumentException | NoSuchFieldException e) {
 				fail("Cannot access nbWorkers field");

@@ -43,7 +43,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.Compression.CompressionType;
+import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.readdata.ReadData;
+import org.janelia.saalfeldlab.n5.serialization.NameConfig;;
 
 /**
  * Zstandard compression for N5
@@ -57,6 +60,7 @@ import org.janelia.saalfeldlab.n5.readdata.ReadData;
  *
  */
 @CompressionType("zstd")
+@NameConfig.Name("zstandard")
 public class ZstandardCompression implements Compression {
 	private static final long serialVersionUID = 5811954066059985371L;
 
@@ -74,6 +78,7 @@ public class ZstandardCompression implements Compression {
 	 * Default: 3
 	 */
 	@CompressionParameter
+	@NameConfig.Parameter
 	private int level = ZSTD_CLEVEL_DEFAULT;
 
 	/*
@@ -544,9 +549,16 @@ public class ZstandardCompression implements Compression {
 	}
 
 	@Override
-	public ReadData decode(final ReadData readData) throws IOException {
-		final InputStream inflater = getInputStream(readData.inputStream());
-		return ReadData.from(inflater);
+	public ReadData decode(final ReadData readData) {
+		InputStream inflater;
+		try {
+			inflater = getInputStream(readData.inputStream());
+			return ReadData.from(inflater);
+		} catch (IllegalStateException e) {
+			throw new N5Exception(e);
+		} catch (IOException e) {
+			throw new N5IOException(e);
+		}
 	}
 
 	/*
@@ -565,7 +577,7 @@ public class ZstandardCompression implements Compression {
 	 * the streaming API.
 	 */
 	@Override
-	public ReadData encode(final ReadData readData) throws IOException {
+	public ReadData encode(final ReadData readData) {
 
 		//consider reusing this context
 		ZstdCompressCtx ctx = new ZstdCompressCtx();
