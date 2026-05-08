@@ -1,4 +1,6 @@
-Copyright (c) 2023 - 2025, Howard Hughes Medical Institute
+## BSD 3-Clause License
+
+Copyright (c) 2023-2026, Howard Hughes Medical Institute
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
